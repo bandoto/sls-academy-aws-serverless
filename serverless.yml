@@ -3,13 +3,21 @@ app: sls-typescript-http-api
 service: sls-typescript-http-api
 frameworkVersion: '3'
 
+useDotenv: true
+
 provider:
   name: aws
   runtime: nodejs18.x
   region: us-east-1
   environment:
     LINKS_TABLE: ${self:service}-urls-${sls:stage}
-    ACCOUNT_ID: 769600066462
+    ACCOUNT_ID: ${env:ACCOUNT_ID}
+
+plugins:
+  - serverless-iam-roles-per-function
+  - serverless-offline
+  - serverless-esbuild
+  - serverless-dotenv-plugin
 
 custom:
   esbuild:
@@ -18,6 +26,9 @@ custom:
     target: 'node18'
     platform: 'node'
     concurrency: 10
+  dotenv:
+    include:
+      - .env
 
 functions:
   scheduledDeactivateUrl:
@@ -132,7 +143,7 @@ resources:
           detail-type:
             - 'scheduled-deactivator'
         Targets:
-          - Arn: arn:aws:lambda:us-east-1:769600066462:function:scheduledDeactivateUrl
+          - Arn: arn:aws:lambda:us-east-1:${self:provider.environment.ACCOUNT_ID}:function:scheduledDeactivateUrl
             Id: 'DeactivateTarget'
     ShortUrlQueue:
       Type: AWS::SQS::Queue
@@ -153,7 +164,3 @@ resources:
           ReadCapacityUnits: 5
           WriteCapacityUnits: 5
 
-plugins:
-  - serverless-iam-roles-per-function
-  - serverless-offline
-  - serverless-esbuild

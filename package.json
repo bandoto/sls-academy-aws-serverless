@@ -11,6 +11,7 @@
     "@types/aws-lambda": "^8.10.119",
     "esbuild": "^0.17.19",
     "serverless": "^3.32.2",
+    "serverless-dotenv-plugin": "^6.0.0",
     "serverless-offline": "^12.0.4",
     "typescript": "^4.7.4"
   },
