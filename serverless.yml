@@ -1,0 +1,159 @@
+org: pepperr
+app: sls-typescript-http-api
+service: sls-typescript-http-api
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  region: us-east-1
+  environment:
+    LINKS_TABLE: ${self:service}-urls-${sls:stage}
+    ACCOUNT_ID: 769600066462
+
+custom:
+  esbuild:
+    bundle: true
+    minify: false
+    target: 'node18'
+    platform: 'node'
+    concurrency: 10
+
+functions:
+  scheduledDeactivateUrl:
+    handler: functions/scheduledDeactivateUrl.scheduledDeactivateUrl
+    events:
+      - eventBridge:
+          eventBus: default
+          pattern:
+            source:
+              - 'deactivator'
+            detail-type:
+              - 'scheduled-deactivator'
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - 'dynamodb:DeleteItem'
+          - 'sqs:SendMessage'
+        Resource: '*'
+  shortUrl:
+    handler: functions/shortUrl.shortUrl
+    events:
+      - httpApi:
+          path: /
+          method: post
+          cors: true
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - 'dynamodb:PutItem'
+          - 'dynamodb:Scan'
+          - 'dynamodb:Query'
+          - 'dynamodb:GetItem'
+          - 'sqs:SendMessage'
+          - 'events:PutEvents'
+          - 'scheduler:CreateSchedule'
+          - 'lambda:InvokeFunction'
+        Resource: '*'
+  redirectToUrl:
+    handler: functions/redirectToUrl.redirectToUrl
+    events:
+      - httpApi:
+          path: /{shortedUrl}
+          method: get
+          cors: true
+          response:
+            headers:
+              Location:
+                type: 'STRING'
+            statusCodes:
+              302:
+                pattern: ''
+                headers:
+                  Location: 'integration.response.headers.Location'
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - 'dynamodb:Scan'
+          - 'dynamodb:GetItem'
+          - 'dynamodb:DeleteItem'
+        Resource:
+          - !GetAtt UrlsTable.Arn
+          - !GetAtt ShortUrlQueue.Arn
+  deactivateUrl:
+    handler: functions/deactivateUrl.deactivateUrl
+    events:
+      - httpApi:
+          path: /deactivateURL
+          method: delete
+          cors: true
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - 'dynamodb:Scan'
+          - 'dynamodb:DeleteItem'
+          - 'sqs:SendMessage'
+        Resource:
+          - !GetAtt UrlsTable.Arn
+          - !GetAtt ShortUrlQueue.Arn
+
+resources:
+  Resources:
+    EventBridgerRole:
+      Type: AWS::IAM::Role
+      Properties:
+        RoleName: event-bridger-role
+        AssumeRolePolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service:
+                  - lambda.amazonaws.com
+                  - events.amazonaws.com
+                  - scheduler.amazonaws.com
+              Action:
+                - sts:AssumeRole
+        Policies:
+          - PolicyName: LambdaInvokeAccess
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                - Effect: Allow
+                  Action:
+                    - lambda:InvokeFunction
+                  Resource: '*'
+    ShortUrlEvent:
+      Type: AWS::Events::Rule
+      Properties:
+        EventPattern:
+          source:
+            - 'deactivator'
+          detail-type:
+            - 'scheduled-deactivator'
+        Targets:
+          - Arn: arn:aws:lambda:us-east-1:769600066462:function:scheduledDeactivateUrl
+            Id: 'DeactivateTarget'
+    ShortUrlQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: shorturl-queue-2
+
+    UrlsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:service}-urls-${sls:stage}
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 5
+          WriteCapacityUnits: 5
+
+plugins:
+  - serverless-iam-roles-per-function
+  - serverless-offline
+  - serverless-esbuild
