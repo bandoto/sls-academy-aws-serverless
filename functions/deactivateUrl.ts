@@ -1,7 +1,7 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
 import { DeleteItemCommand, ScanCommand } from "@aws-sdk/client-dynamodb";
-import { dynamoDbClient, sqsClient } from "../helpers/db";
-import { SendMessageCommand } from "@aws-sdk/client-sqs";
+import { dynamoDbClient } from "../helpers/providers";
+import { sendMessageQueue } from "../libs/sendMessageQueue";
 
 export const deactivateUrl = async (
   event: APIGatewayProxyEvent
@@ -37,13 +37,7 @@ export const deactivateUrl = async (
       };
     }
 
-    const queueParams = {
-      MessageBody: JSON.stringify({
-        message: `Link with ID has been deactivated`,
-      }),
-      QueueUrl: `https://sqs.us-east-1.amazonaws.com/${process.env.ACCOUNT_ID}/shorturl-queue-2`,
-    };
-    await sqsClient.send(new SendMessageCommand(queueParams));
+    await sendMessageQueue(itemId);
 
     const deleteCommand: DeleteItemCommand = new DeleteItemCommand({
       TableName: process.env.LINKS_TABLE!,

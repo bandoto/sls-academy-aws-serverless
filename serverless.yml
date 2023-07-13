@@ -12,6 +12,10 @@ provider:
   environment:
     LINKS_TABLE: ${self:service}-urls-${sls:stage}
     ACCOUNT_ID: ${env:ACCOUNT_ID}
+    REGION: ${env:REGION}
+    QUEUE_NAME: ${env:QUEUE_NAME}
+    SCHEDULED_DEACTIVATE: ${env:SCHEDULED_DEACTIVATE}
+    EMAIL: ${env:EMAIL}
 
 plugins:
   - serverless-iam-roles-per-function
@@ -46,6 +50,22 @@ functions:
         Action:
           - 'dynamodb:DeleteItem'
           - 'sqs:SendMessage'
+          - 'ses:*'
+        Resource: '*'
+  sendEmailNotification:
+    handler: libs/sendEmailNotification.sendEmailNotification
+    events:
+      - sqs:
+          arn:
+            Fn::GetAtt:
+              - ShortUrlQueue
+              - Arn
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - 'dynamodb:*'
+          - 'sqs:*'
+          - 'ses:*'
         Resource: '*'
   shortUrl:
     handler: functions/shortUrl.shortUrl
@@ -88,6 +108,8 @@ functions:
           - 'dynamodb:Scan'
           - 'dynamodb:GetItem'
           - 'dynamodb:DeleteItem'
+          - 'sqs:SendMessage'
+          - 'ses:*'
         Resource:
           - !GetAtt UrlsTable.Arn
           - !GetAtt ShortUrlQueue.Arn
@@ -104,6 +126,7 @@ functions:
           - 'dynamodb:Scan'
           - 'dynamodb:DeleteItem'
           - 'sqs:SendMessage'
+          - 'ses:*'
         Resource:
           - !GetAtt UrlsTable.Arn
           - !GetAtt ShortUrlQueue.Arn
@@ -143,12 +166,12 @@ resources:
           detail-type:
             - 'scheduled-deactivator'
         Targets:
-          - Arn: arn:aws:lambda:us-east-1:${self:provider.environment.ACCOUNT_ID}:function:scheduledDeactivateUrl
+          - Arn: arn:aws:lambda:${self:provider.environment.REGION}:${self:provider.environment.ACCOUNT_ID}:function:${self:provider.environment.SCHEDULED_DEACTIVATE}
             Id: 'DeactivateTarget'
     ShortUrlQueue:
       Type: AWS::SQS::Queue
       Properties:
-        QueueName: shorturl-queue-2
+        QueueName: ${self:provider.environment.QUEUE_NAME}
 
     UrlsTable:
       Type: AWS::DynamoDB::Table
@@ -163,4 +186,5 @@ resources:
         ProvisionedThroughput:
           ReadCapacityUnits: 5
           WriteCapacityUnits: 5
+
 

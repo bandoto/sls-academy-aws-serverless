@@ -1,7 +1,8 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
 import { DeleteItemCommand, ScanCommand } from "@aws-sdk/client-dynamodb";
 import { BASE_URL } from "../helpers/constants";
-import { dynamoDbClient } from "../helpers/db";
+import { dynamoDbClient } from "../helpers/providers";
+import { sendMessageQueue } from "../libs/sendMessageQueue";
 
 export const redirectToUrl = async (
   event: APIGatewayProxyEvent
@@ -30,9 +31,9 @@ export const redirectToUrl = async (
       };
     }
 
-    const originalUrl = existUrl.Items[0]?.originalUrl?.S;
-    const itemId = existUrl.Items[0]?.id?.S;
-    const existDisposable = existUrl.Items[0]?.disposable?.BOOL;
+    const originalUrl = existUrl.Items[0]?.originalUrl?.S!;
+    const itemId = existUrl.Items[0]?.id?.S!;
+    const existDisposable = existUrl.Items[0]?.disposable?.BOOL!;
 
     if (!originalUrl) {
       return {
@@ -54,6 +55,9 @@ export const redirectToUrl = async (
         TableName: process.env.LINKS_TABLE!,
         Key: { id: { S: itemId } },
       });
+
+      await sendMessageQueue(itemId);
+
       await dynamoDbClient.send(deleteCommand);
     }
 

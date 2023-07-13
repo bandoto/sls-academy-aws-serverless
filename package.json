@@ -19,6 +19,7 @@
     "@aws-sdk/client-dynamodb": "^3.363.0",
     "@aws-sdk/client-eventbridge": "^3.363.0",
     "@aws-sdk/client-scheduler": "^3.363.0",
+    "@aws-sdk/client-ses": "^3.363.0",
     "@aws-sdk/client-sqs": "^3.363.0",
     "@aws-sdk/types": "^3.357.0",
     "@aws-sdk/util-dynamodb": "^3.365.0",

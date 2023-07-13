@@ -1,27 +1,20 @@
 import { DeleteItemCommand } from "@aws-sdk/client-dynamodb";
-import { dynamoDbClient, sqsClient } from "../helpers/db";
-import { SendMessageCommand } from "@aws-sdk/client-sqs";
+import { dynamoDbClient } from "../helpers/providers";
+import { sendMessageQueue } from "../libs/sendMessageQueue";
 
 interface ScheduledDeactivateUrlEvent {
-  postId: string;
+  urlId: string;
 }
 
 export const scheduledDeactivateUrl = async (
   event: ScheduledDeactivateUrlEvent
 ): Promise<void> => {
   try {
-    const queueParams = {
-      MessageBody: JSON.stringify({
-        message: `Url with ID ${event.postId} has been deactivated`,
-      }),
-      QueueUrl: `https://sqs.us-east-1.amazonaws.com/${process.env.ACCOUNT_ID}/shorturl-queue-2`,
-    };
-
-    await sqsClient.send(new SendMessageCommand(queueParams));
+    await sendMessageQueue(event.urlId);
 
     const deleteCommand: DeleteItemCommand = new DeleteItemCommand({
       TableName: process.env.LINKS_TABLE!,
-      Key: { id: { S: event.postId } },
+      Key: { id: { S: event.urlId } },
     });
 
     await dynamoDbClient.send(deleteCommand);
