@@ -3,12 +3,15 @@
   "description": "This template demonstrates how to make a simple HTTP API with Node.js and Typescript running on AWS Lambda and API Gateway using the Serverless Framework v3",
   "version": "1.0.0",
   "scripts": {
-    "dev": "sls offline",
+    "dev": "sls offline start --reloadHandler",
     "build": "sls package",
     "deploy": "sls deploy"
   },
   "devDependencies": {
     "@types/aws-lambda": "^8.10.119",
+    "@types/bcryptjs": "^2.4.2",
+    "@types/cookie": "^0.5.1",
+    "@types/jsonwebtoken": "^9.0.2",
     "esbuild": "^0.17.19",
     "serverless": "^3.32.2",
     "serverless-dotenv-plugin": "^6.0.0",
@@ -23,6 +26,9 @@
     "@aws-sdk/client-sqs": "^3.363.0",
     "@aws-sdk/types": "^3.357.0",
     "@aws-sdk/util-dynamodb": "^3.365.0",
+    "bcryptjs": "^2.4.3",
+    "cookie": "^0.5.0",
+    "jsonwebtoken": "^9.0.1",
     "nanoid": "^4.0.2",
     "serverless-esbuild": "^1.45.1",
     "serverless-iam-roles-per-function": "^3.2.0"

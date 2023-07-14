@@ -11,11 +11,14 @@ provider:
   region: us-east-1
   environment:
     LINKS_TABLE: ${self:service}-urls-${sls:stage}
+    USERS_TABLE: ${self:service}-users-${sls:stage}
     ACCOUNT_ID: ${env:ACCOUNT_ID}
     REGION: ${env:REGION}
     QUEUE_NAME: ${env:QUEUE_NAME}
     SCHEDULED_DEACTIVATE: ${env:SCHEDULED_DEACTIVATE}
     EMAIL: ${env:EMAIL}
+    JWT_ACCESS_SECRET: ${env:JWT_ACCESS_SECRET}
+    JWT_REFRESH_SECRET: ${env:JWT_REFRESH_SECRET}
 
 plugins:
   - serverless-iam-roles-per-function
@@ -35,6 +38,47 @@ custom:
       - .env
 
 functions:
+  checkIsAuth:
+    handler: functions/checkIsAuth.checkIsAuth
+  signUp:
+    handler: functions/signUp.signUp
+    events:
+      - http:
+          path: sign-up
+          method: post
+          cors: true
+          bodyType: User
+          responseData:
+            200:
+              bodyType: RegisterResponse
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - 'dynamodb:PutItem'
+          - 'dynamodb:GetItem'
+        Resource:
+          - !GetAtt UsersTable.Arn
+          - !GetAtt UrlsTable.Arn
+  login:
+    handler: functions/signIn.signIn
+    events:
+      - http:
+          path: sign-in
+          method: post
+          cors: true
+          bodyType: User
+          responseData:
+            200:
+              bodyType: LoginResponse
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - 'dynamodb:PutItem'
+          - 'dynamodb:GetItem'
+        Resource:
+          - !GetAtt UsersTable.Arn
+          - !GetAtt UrlsTable.Arn
+
   scheduledDeactivateUrl:
     handler: functions/scheduledDeactivateUrl.scheduledDeactivateUrl
     events:
@@ -177,6 +221,19 @@ resources:
       Type: AWS::DynamoDB::Table
       Properties:
         TableName: ${self:service}-urls-${sls:stage}
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 5
+          WriteCapacityUnits: 5
+    UsersTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:service}-users-${sls:stage}
         AttributeDefinitions:
           - AttributeName: id
             AttributeType: S
