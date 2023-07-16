@@ -19,6 +19,12 @@ provider:
     EMAIL: ${env:EMAIL}
     JWT_ACCESS_SECRET: ${env:JWT_ACCESS_SECRET}
     JWT_REFRESH_SECRET: ${env:JWT_REFRESH_SECRET}
+#  httpApi:
+#    authorizers:
+#      checkIsAuth:
+#        type: request
+#        functionName: checkIsAuth
+#    cors: true
 
 plugins:
   - serverless-iam-roles-per-function
@@ -44,13 +50,10 @@ functions:
     handler: functions/signUp.signUp
     events:
       - http:
-          path: sign-up
+          path: /sign-up
           method: post
           cors: true
           bodyType: User
-          responseData:
-            200:
-              bodyType: RegisterResponse
     iamRoleStatements:
       - Effect: Allow
         Action:
@@ -59,17 +62,14 @@ functions:
         Resource:
           - !GetAtt UsersTable.Arn
           - !GetAtt UrlsTable.Arn
-  login:
+  signIn:
     handler: functions/signIn.signIn
     events:
       - http:
-          path: sign-in
+          path: /sign-in
           method: post
           cors: true
           bodyType: User
-          responseData:
-            200:
-              bodyType: LoginResponse
     iamRoleStatements:
       - Effect: Allow
         Action:
@@ -78,6 +78,23 @@ functions:
         Resource:
           - !GetAtt UsersTable.Arn
           - !GetAtt UrlsTable.Arn
+  refreshTokens:
+    handler: functions/refreshTokens.refreshTokens
+    events:
+      - http:
+          path: /refresh
+          method: get
+          cors: true
+          authorizer:
+            name: checkIsAuth
+            identitySource: method.request.header.Authorization
+            resultTtlInSeconds: 3600
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - 'dynamodb:*'
+        Resource:
+          - !GetAtt UsersTable.Arn
 
   scheduledDeactivateUrl:
     handler: functions/scheduledDeactivateUrl.scheduledDeactivateUrl
@@ -114,10 +131,14 @@ functions:
   shortUrl:
     handler: functions/shortUrl.shortUrl
     events:
-      - httpApi:
+      - http:
           path: /
           method: post
           cors: true
+          authorizer:
+            name: checkIsAuth
+            identitySource: method.request.header.Authorization
+            resultTtlInSeconds: 3600
     iamRoleStatements:
       - Effect: Allow
         Action:
@@ -133,7 +154,7 @@ functions:
   redirectToUrl:
     handler: functions/redirectToUrl.redirectToUrl
     events:
-      - httpApi:
+      - http:
           path: /{shortedUrl}
           method: get
           cors: true
@@ -160,10 +181,14 @@ functions:
   deactivateUrl:
     handler: functions/deactivateUrl.deactivateUrl
     events:
-      - httpApi:
+      - http:
           path: /deactivateURL
           method: delete
           cors: true
+          authorizer:
+            name: checkIsAuth
+            identitySource: method.request.header.Authorization
+            resultTtlInSeconds: 3600
     iamRoleStatements:
       - Effect: Allow
         Action:

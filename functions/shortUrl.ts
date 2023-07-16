@@ -57,6 +57,7 @@ export const shortUrl = async (
         disposable: { BOOL: disposable },
         createdDate: { S: !disposable ? createdDate : "" },
         expireDate: { S: !disposable ? expireDate : "" },
+        clickCounter: { N: "0" },
       },
     });
 

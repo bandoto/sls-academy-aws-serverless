@@ -1,5 +1,9 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
-import { DeleteItemCommand, ScanCommand } from "@aws-sdk/client-dynamodb";
+import {
+  DeleteItemCommand,
+  ScanCommand,
+  UpdateItemCommand,
+} from "@aws-sdk/client-dynamodb";
 import { BASE_URL } from "../helpers/constants";
 import { dynamoDbClient } from "../helpers/providers";
 import { sendMessageQueue } from "../libs/sendMessageQueue";
@@ -24,16 +28,16 @@ export const redirectToUrl = async (
 
     const existUrl = await dynamoDbClient.send(command);
 
-    if (!existUrl.Items) {
+    if (!existUrl.Items || existUrl.Items.length === 0) {
       return {
         statusCode: 404,
         body: JSON.stringify({ success: false, error: "URL not found" }),
       };
     }
 
-    const originalUrl = existUrl.Items[0]?.originalUrl?.S!;
-    const itemId = existUrl.Items[0]?.id?.S!;
-    const existDisposable = existUrl.Items[0]?.disposable?.BOOL!;
+    const originalUrl = existUrl.Items[0].originalUrl.S;
+    const itemId = existUrl.Items[0].id.S;
+    const existDisposable = existUrl.Items[0].disposable.BOOL;
 
     if (!originalUrl) {
       return {
@@ -59,6 +63,24 @@ export const redirectToUrl = async (
       await sendMessageQueue(itemId);
 
       await dynamoDbClient.send(deleteCommand);
+    }
+
+    if (itemId) {
+      const params = {
+        TableName: process.env.LINKS_TABLE,
+        Key: {
+          id: { S: itemId },
+        },
+        UpdateExpression: "ADD clickCounter :increment",
+        ExpressionAttributeValues: {
+          ":increment": { N: "1" },
+        },
+        ReturnValues: "ALL_NEW",
+      };
+
+      const clickCounterCommand = new UpdateItemCommand(params);
+
+      await dynamoDbClient.send(clickCounterCommand);
     }
 
     return response;

@@ -5,22 +5,6 @@ import {
 } from "@aws-sdk/client-dynamodb";
 import { dynamoDbClient } from "../helpers/providers";
 
-interface ISignResponse {
-  success: boolean;
-  error?: string;
-  data?: {
-    id?: string;
-    accessToken?: string;
-    refreshToken?: string;
-    email?: string;
-  };
-}
-
-interface IValidTokenResponse {
-  userId: string;
-  email: string;
-}
-
 export const generateTokens = (payload: {
   userId: string;
   email: string;
@@ -36,13 +20,9 @@ export const generateTokens = (payload: {
   };
 };
 
-export const validAccessToken = (
-  token: string
-): JwtPayload | IValidTokenResponse => {
+export const validAccessToken = (token: string): JwtPayload => {
   try {
-    return jwt.verify(token, process.env.JWT_ACCESS_SECRET!) as
-      | JwtPayload
-      | ISignResponse;
+    return jwt.verify(token, process.env.JWT_ACCESS_SECRET!) as JwtPayload;
   } catch (error) {
     return {
       success: false,
@@ -51,13 +31,9 @@ export const validAccessToken = (
   }
 };
 
-export const validRefreshToken = (
-  token: string
-): JwtPayload | IValidTokenResponse => {
+export const validRefreshToken = (token: string): JwtPayload => {
   try {
-    return jwt.verify(token, process.env.JWT_REFRESH_SECRET!) as
-      | JwtPayload
-      | ISignResponse;
+    return jwt.verify(token, process.env.JWT_REFRESH_SECRET!) as JwtPayload;
   } catch (error) {
     return {
       success: false,

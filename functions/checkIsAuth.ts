@@ -11,47 +11,33 @@ export const checkIsAuth = async (
   context: any,
   callback: Callback<APIGatewayAuthorizerResult>
 ): Promise<void> => {
-  const accessToken = event.authorizationToken?.replace("Bearer ", "");
+  const accessToken = event.authorizationToken.split(" ")[1];
   const methodArn = event.methodArn;
 
-  if (!accessToken) {
-    return callback(null, generateAuthResponse("Deny", methodArn, ""));
+  if (!accessToken || !methodArn) {
+    return callback("Unauthorized");
   }
 
-  const userData = validAccessToken(accessToken);
+  const userToken = validAccessToken(accessToken);
 
-  if (!userData) {
-    return callback(null, generateAuthResponse("Deny", methodArn, ""));
+  if (!userToken || !userToken.userId) {
+    return callback(null, generateAuthResponse("", "Deny", methodArn));
   }
 
   return callback(
     null,
-    generateAuthResponse("Allow", methodArn, userData.userId)
+    generateAuthResponse(userToken.userId, "Allow", methodArn)
   );
 };
 
 const generateAuthResponse = (
-  effect: string,
-  methodArn: string,
-  userId: string
-): APIGatewayAuthorizerResult => ({
-  principalId: userId,
-  policyDocument:
-    generatePolicyDocument(effect, methodArn) || getDefaultPolicyDocument(),
-});
-
-const getDefaultPolicyDocument = (): PolicyDocument => ({
-  Version: "2012-10-17",
-  Statement: [],
-});
-
-const generatePolicyDocument = (
-  effect: string,
+  principalId: string,
+  effect: "Allow" | "Deny",
   methodArn: string
-): PolicyDocument | null => {
-  if (!effect || !methodArn) return null;
+): APIGatewayAuthorizerResult | undefined => {
+  if (!effect || !methodArn) return undefined;
 
-  return {
+  const policyDocument: PolicyDocument = {
     Version: "2012-10-17",
     Statement: [
       {
@@ -60,5 +46,10 @@ const generatePolicyDocument = (
         Resource: methodArn,
       },
     ],
+  };
+
+  return {
+    principalId,
+    policyDocument,
   };
 };
