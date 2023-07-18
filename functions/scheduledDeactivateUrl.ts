@@ -1,6 +1,5 @@
-import { DeleteItemCommand } from "@aws-sdk/client-dynamodb";
-import { dynamoDbClient } from "../helpers/providers";
 import { sendMessageQueue } from "../libs/sendMessageQueue";
+import { deleteFromTable } from "../libs/dynamodbHelpers";
 
 interface ScheduledDeactivateUrlEvent {
   urlId: string;
@@ -12,12 +11,7 @@ export const scheduledDeactivateUrl = async (
   try {
     await sendMessageQueue(event.urlId);
 
-    const deleteCommand: DeleteItemCommand = new DeleteItemCommand({
-      TableName: process.env.LINKS_TABLE!,
-      Key: { id: { S: event.urlId } },
-    });
-
-    await dynamoDbClient.send(deleteCommand);
+    await deleteFromTable(process.env.LINKS_TABLE!, event.urlId);
   } catch (error) {
     console.log(error);
   }

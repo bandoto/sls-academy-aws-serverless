@@ -15,7 +15,6 @@ interface Event {
 
 export const sendEmailNotification = async (event: Event): Promise<void> => {
   try {
-    console.log(event);
     const { body } = event.Records[0];
     const { message } = JSON.parse(body);
 

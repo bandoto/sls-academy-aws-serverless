@@ -16,7 +16,7 @@ export const signIn = async (
 
     if (email.length < 1 || password.length < 1) {
       return {
-        statusCode: 404,
+        statusCode: 400,
         body: JSON.stringify({
           success: false,
           error: "Enter email or password",
@@ -51,7 +51,7 @@ export const signIn = async (
 
     if (!isPassEquals) {
       return {
-        statusCode: 404,
+        statusCode: 400,
         body: JSON.stringify({
           success: false,
           error: "Incorrect password",
@@ -74,7 +74,7 @@ export const signIn = async (
     );
 
     return {
-      statusCode: 500,
+      statusCode: 200,
       headers: {
         "Set-Cookie": cookieHeaderValue,
       },

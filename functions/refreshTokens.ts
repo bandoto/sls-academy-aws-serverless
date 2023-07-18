@@ -21,10 +21,10 @@ export const refreshTokens: APIGatewayProxyHandler = async (
     const cookies = parse(cookieHeader);
 
     const refreshToken = cookies.refreshToken;
-    console.log(refreshToken);
+
     if (!refreshToken) {
       return {
-        statusCode: 404,
+        statusCode: 400,
         body: JSON.stringify({
           success: false,
           error: "Refresh token not found",
@@ -33,6 +33,7 @@ export const refreshTokens: APIGatewayProxyHandler = async (
     }
 
     const userData = await validRefreshToken(refreshToken);
+
     const command: ScanCommand = new ScanCommand({
       TableName: process.env.USERS_TABLE!,
       FilterExpression: "refresh_token = :refreshToken",
@@ -45,7 +46,7 @@ export const refreshTokens: APIGatewayProxyHandler = async (
 
     if (!userData || !existData.Items || existData.Items.length === 0) {
       return {
-        statusCode: 404,
+        statusCode: 400,
         body: JSON.stringify({
           success: false,
           error: "Refresh token not found",

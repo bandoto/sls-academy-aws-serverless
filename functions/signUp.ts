@@ -2,6 +2,7 @@ import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
 import { PutItemCommand, ScanCommand } from "@aws-sdk/client-dynamodb";
 import { dynamoDbClient } from "../helpers/providers";
 import bcrypt from "bcryptjs";
+// @ts-ignore
 import { nanoid } from "nanoid";
 import { CookieSerializeOptions, serialize } from "cookie";
 import { generateTokens, saveToken } from "../libs/jwtTokenActions";
@@ -17,7 +18,7 @@ export const signUp = async (
 
     if (email.length < 1 || password.length < 1) {
       return {
-        statusCode: 404,
+        statusCode: 400,
         body: JSON.stringify({
           success: false,
           error: "Enter email or password",
@@ -37,8 +38,11 @@ export const signUp = async (
 
     if (existUser.Items && existUser.Items.length > 0) {
       return {
-        statusCode: 404,
-        body: JSON.stringify({ success: false, error: "Email is busy" }),
+        statusCode: 400,
+        body: JSON.stringify({
+          success: false,
+          error: "Email is already registered",
+        }),
       };
     }
 
@@ -51,6 +55,7 @@ export const signUp = async (
         id: { S: userId },
         email: { S: email },
         password: { S: hashedPassword },
+        urls_list: { L: [] },
       },
     });
 
@@ -71,7 +76,7 @@ export const signUp = async (
     );
 
     return {
-      statusCode: 500,
+      statusCode: 200,
       headers: {
         "Set-Cookie": cookieHeaderValue,
       },

@@ -1,10 +1,12 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
 import { PutItemCommand } from "@aws-sdk/client-dynamodb";
+// @ts-ignore
 import { nanoid } from "nanoid";
 import { isUrl } from "../helpers/functions";
 import { dynamoDbClient } from "../helpers/providers";
 import { BASE_URL } from "../helpers/constants";
 import { addToScheduler } from "../libs/addToScheduler";
+import { pushUrlToUser } from "../libs/dynamodbHelpers";
 
 export const shortUrl = async (
   event: APIGatewayProxyEvent
@@ -66,6 +68,16 @@ export const shortUrl = async (
     }
 
     await dynamoDbClient.send(putItemCommand);
+
+    const userId = event.requestContext?.authorizer?.principalId;
+    if (!userId) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({ success: false, error: "Unauthorized" }),
+      };
+    }
+
+    await pushUrlToUser(userId, urlId);
 
     return {
       statusCode: 200,

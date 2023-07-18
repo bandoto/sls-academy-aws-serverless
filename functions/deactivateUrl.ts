@@ -1,7 +1,8 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
-import { DeleteItemCommand, ScanCommand } from "@aws-sdk/client-dynamodb";
+import { ScanCommand } from "@aws-sdk/client-dynamodb";
 import { dynamoDbClient } from "../helpers/providers";
 import { sendMessageQueue } from "../libs/sendMessageQueue";
+import { deleteFromTable, deleteUrlFromUser } from "../libs/dynamodbHelpers";
 
 export const deactivateUrl = async (
   event: APIGatewayProxyEvent
@@ -39,15 +40,21 @@ export const deactivateUrl = async (
 
     await sendMessageQueue(itemId);
 
-    const deleteCommand: DeleteItemCommand = new DeleteItemCommand({
-      TableName: process.env.LINKS_TABLE!,
-      Key: { id: { S: itemId } },
-    });
-    await dynamoDbClient.send(deleteCommand);
+    await deleteFromTable(process.env.LINKS_TABLE!, itemId);
+
+    const userId = event.requestContext?.authorizer?.principalId;
+    if (!userId) {
+      return {
+        statusCode: 401,
+        body: JSON.stringify({ success: false, error: "Unauthorized" }),
+      };
+    }
+
+    await deleteUrlFromUser(userId, itemId);
 
     return {
-      statusCode: 302,
-      body: "",
+      statusCode: 200,
+      body: JSON.stringify({ id: itemId }),
     };
   } catch (error) {
     return {

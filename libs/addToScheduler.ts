@@ -3,6 +3,7 @@ import {
   CreateScheduleCommandInput,
   SchedulerClient,
 } from "@aws-sdk/client-scheduler";
+// @ts-ignore
 import { nanoid } from "nanoid";
 
 export const addToScheduler = async (

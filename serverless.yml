@@ -19,12 +19,6 @@ provider:
     EMAIL: ${env:EMAIL}
     JWT_ACCESS_SECRET: ${env:JWT_ACCESS_SECRET}
     JWT_REFRESH_SECRET: ${env:JWT_REFRESH_SECRET}
-#  httpApi:
-#    authorizers:
-#      checkIsAuth:
-#        type: request
-#        functionName: checkIsAuth
-#    cors: true
 
 plugins:
   - serverless-iam-roles-per-function
@@ -75,6 +69,24 @@ functions:
         Action:
           - 'dynamodb:PutItem'
           - 'dynamodb:GetItem'
+        Resource:
+          - !GetAtt UsersTable.Arn
+          - !GetAtt UrlsTable.Arn
+  profile:
+    handler: functions/getMyProfile.getMyProfile
+    events:
+      - http:
+          path: /profile
+          method: get
+          cors: true
+          authorizer:
+            name: checkIsAuth
+            identitySource: method.request.header.Authorization
+            resultTtlInSeconds: 3600
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - 'dynamodb:*'
         Resource:
           - !GetAtt UsersTable.Arn
           - !GetAtt UrlsTable.Arn
@@ -167,6 +179,10 @@ functions:
                 pattern: ''
                 headers:
                   Location: 'integration.response.headers.Location'
+          authorizer:
+            name: checkIsAuth
+            identitySource: method.request.header.Authorization
+            resultTtlInSeconds: 3600
     iamRoleStatements:
       - Effect: Allow
         Action:

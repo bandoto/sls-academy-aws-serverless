@@ -21,7 +21,7 @@ export const checkIsAuth = async (
   const userToken = validAccessToken(accessToken);
 
   if (!userToken || !userToken.userId) {
-    return callback(null, generateAuthResponse("", "Deny", methodArn));
+    return callback(null, generateAuthResponse("user", "Deny", methodArn));
   }
 
   return callback(
