@@ -12,14 +12,14 @@ API DOCS:
 ROUTE TO REGISTER
 POST   | http://localhost:3000/dev/sign-up 
 ```
-  request: {"email": "11pepdddper@dad.asda", "password": "pepper"}
+  request: {"email": "user@gmail.com", "password": "qwerty"}
   response: {"id": 1,"accessToken": "token", "refreshToken": "token"}
 ```
 
 ROUTE TO LOGIN
 POST   | http://localhost:3000/dev/sign-in           
 ```
-  request: {"email": "11pepdddper@dad.asda", "password": "pepper"}
+  request: {"email": "user@gmail.com", "password": "qwerty"}
   response: {"id": 1,"accessToken": "token", "refreshToken": "token"} 
 ```
 
@@ -40,7 +40,8 @@ GET    | http://localhost:3000/dev/profile
 ROUTE TO CREATE SHORTLINK
 POST   | http://localhost:3000/dev                                 
 ```
-  request: {"originalUrl": "https://www.youtube.com/watch?v=dQw4w9WgXcQ", "disposable": false, "expiresAt": 1}
+  request: {"originalUrl": "https://www.youtube.com/watch?v=dQw4w9WgXcQ", "disposable": false, "expiresAt": 1} 
+  // disposable: one time link or not, expiresAt: the number of days after which it is deactivated (for test you can write 0.0001 ~ 40sec)
   response: {"success": true,"data": {"fullUrl": "http://localhost:3000/dev/id", "urlId": "url-id"}}
 ```
 
