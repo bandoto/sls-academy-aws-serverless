@@ -126,7 +126,7 @@ functions:
           - 'ses:*'
         Resource: '*'
   sendEmailNotification:
-    handler: libs/sendEmailNotification.sendEmailNotification
+    handler: functions/sendEmailNotification.sendEmailNotification
     events:
       - sqs:
           arn:

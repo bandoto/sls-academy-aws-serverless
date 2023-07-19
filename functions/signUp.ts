@@ -6,6 +6,7 @@ import bcrypt from "bcryptjs";
 import { nanoid } from "nanoid";
 import { CookieSerializeOptions, serialize } from "cookie";
 import { generateTokens, saveToken } from "../libs/jwtTokenActions";
+import { EMAIL_REGEX } from "../helpers/constants";
 
 export const signUp = async (
   event: APIGatewayProxyEvent
@@ -16,12 +17,32 @@ export const signUp = async (
       password: string;
     };
 
-    if (email.length < 1 || password.length < 1) {
+    if (!email || !password) {
       return {
         statusCode: 400,
         body: JSON.stringify({
           success: false,
           error: "Enter email or password",
+        }),
+      };
+    }
+
+    if (!EMAIL_REGEX.test(email)) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({
+          success: false,
+          error: "Invalid email format",
+        }),
+      };
+    }
+
+    if (password.length < 4) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({
+          success: false,
+          error: "Password must be at least 6 characters long",
         }),
       };
     }
