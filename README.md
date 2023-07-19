@@ -27,7 +27,7 @@ ROUTE TO REFRESH TOKENS
 GET    | http://localhost:3000/dev/refresh                         
 ```
   request: none
-  response: none
+  response: {"id": 1,"accessToken": "token", "refreshToken": "token"} 
 ```
 
 ROUTE TO CHECK YOUR PROFILE
