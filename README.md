@@ -1,45 +1,47 @@
-<!--
-title: 'AWS Simple HTTP Endpoint example in NodeJS with Typescript'
-description: 'This template demonstrates how to make a simple HTTP API with Node.js and Typescript running on AWS Lambda and API Gateway using the Serverless Framework v3.'
-layout: Doc
-framework: v3
-platform: AWS
-language: nodeJS
-authorLink: 'https://github.com/serverless'
-authorName: 'Serverless, inc.'
-authorAvatar: 'https://avatars1.githubusercontent.com/u/13742415?s=200&v=4'
--->
+  HOW TO USE IT:
+ - CREATE AN .env FILE FOLLOWING THE .env.example WITH THE REQUIRED FIELDS
 
-# Serverless Framework Node with Typescript HTTP API on AWS
+ - RUN BUILD COMMAND => npm run build
 
-This template demonstrates how to make a simple HTTP API with Node.js and Typescript running on AWS Lambda and API Gateway using the Serverless Framework v3.
+ - RUN APP AS DEV => npm run dev
 
-This template does not include any kind of persistence (database). For more advanced examples, check out the [serverless/examples repository](https://github.com/serverless/examples) which includes Typescript, Mongo, DynamoDB and other examples.
+ - RUN DEPLOY => npm run deploy
 
-## Setup
+API DOCS:
 
-Run this command to initialize a new project in a new working directory.
-
+ROUTE TO REGISTER
+POST   | http://localhost:3000/dev/sign-up 
 ```
-npm install
+  request: {"email": "11pepdddper@dad.asda", "password": "pepper"}
+  response: {"id": 1,"accessToken": "token", "refreshToken": "token"}
 ```
 
-## Usage
+ROUTE TO LOGIN
+POST   | http://localhost:3000/dev/sign-in                         
+  request: {"email": "11pepdddper@dad.asda", "password": "pepper"}
+  response: {"id": 1,"accessToken": "token", "refreshToken": "token"} 
 
-**Deploy**
+ROUTE TO REFRESH TOKENS
+GET    | http://localhost:3000/dev/refresh                         
+  request: none
+  response: none
+  
+ROUTE TO CHECK YOUR PROFILE
+GET    | http://localhost:3000/dev/profile                         
+  request: none
+  response: {"userId": "id","userEmail": "email", "userUrls": UrlsItem[]}
 
-```
-$ serverless deploy
-```
+ROUTE TO CREATE SHORTLINK
+POST   | http://localhost:3000/dev                                 
+  request: {"originalUrl": "https://www.youtube.com/watch?v=dQw4w9WgXcQ", "disposable": false, "expiresAt": 1}
+  response: {"success": true,"data": {"fullUrl": "http://localhost:3000/dev/id", "urlId": "url-id"}}
 
-**Invoke the function locally.**
+ROUTE TO REDIRECT FROM SHORTLINK TO ORIGIN LINK (response from http://localhost:3000/dev)
+GET    | http://localhost:3000/dev/{shortedUrl}                    
+  request: none
+  response: redirect
 
-```
-serverless invoke local --function hello
-```
-
-**Invoke the function**
-
-```
-curl https://xxxxxxxxx.execute-api.us-east-1.amazonaws.com/
-```
+ROUTE TO DELETE SHORTLINK
+DELETE | http://localhost:3000/dev/deactivateURL                   
+  request: {"linkToDeactivate": "http://localhost:3000/dev/id"}
+  response: {"id": "url-id"}
