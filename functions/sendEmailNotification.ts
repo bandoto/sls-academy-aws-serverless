@@ -1,9 +1,5 @@
 import { sesClient } from "../helpers/providers";
-import {
-  ListIdentitiesCommand,
-  SendEmailCommand,
-  VerifyEmailIdentityCommand,
-} from "@aws-sdk/client-ses";
+import { SendEmailCommand } from "@aws-sdk/client-ses";
 
 interface Event {
   Records: [
@@ -19,21 +15,6 @@ export const sendEmailNotification = async (event: Event): Promise<void> => {
     const { message } = JSON.parse(body);
 
     const EMAIL = process.env.EMAIL!;
-
-    const listIdentitiesResponse = await sesClient.send(
-      new ListIdentitiesCommand({})
-    );
-
-    const verifiedEmails = listIdentitiesResponse.Identities ?? [];
-
-    if (!verifiedEmails.includes(EMAIL)) {
-      await sesClient.send(
-        new VerifyEmailIdentityCommand({ EmailAddress: EMAIL })
-      );
-      console.log(`Email ${EMAIL} has been verified.`);
-    } else {
-      console.log(`Email ${EMAIL} is already verified.`);
-    }
 
     const emailParams = {
       Destination: {
@@ -51,6 +32,8 @@ export const sendEmailNotification = async (event: Event): Promise<void> => {
       },
       Source: EMAIL,
     };
+
+    console.log(message, EMAIL);
 
     await sesClient.send(new SendEmailCommand(emailParams));
   } catch (error) {

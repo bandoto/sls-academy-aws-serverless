@@ -3,7 +3,8 @@ import { ScanCommand, UpdateItemCommand } from "@aws-sdk/client-dynamodb";
 import { BASE_URL } from "../helpers/constants";
 import { dynamoDbClient } from "../helpers/providers";
 import { sendMessageQueue } from "../libs/sendMessageQueue";
-import { deleteFromTable, deleteUrlFromUser } from "../libs/dynamodbHelpers";
+import { deleteFromTable } from "../libs/dynamodbHelpers";
+import { createError } from "../helpers/functions";
 
 export const redirectToUrl = async (
   event: APIGatewayProxyEvent
@@ -26,10 +27,7 @@ export const redirectToUrl = async (
     const existUrl = await dynamoDbClient.send(command);
 
     if (!existUrl.Items || existUrl.Items.length === 0) {
-      return {
-        statusCode: 404,
-        body: JSON.stringify({ success: false, error: "URL not found" }),
-      };
+      return createError(404, { success: false, error: "URL not found" });
     }
 
     const originalUrl = existUrl.Items[0].originalUrl.S;
@@ -37,10 +35,10 @@ export const redirectToUrl = async (
     const existDisposable = existUrl.Items[0].disposable.BOOL;
 
     if (!originalUrl) {
-      return {
-        statusCode: 404,
-        body: JSON.stringify({ success: false, error: "Something went wrong" }),
-      };
+      return createError(404, {
+        success: false,
+        error: "Something went wrong",
+      });
     }
 
     const response: APIGatewayProxyResult = {
@@ -73,26 +71,13 @@ export const redirectToUrl = async (
       await deleteFromTable(process.env.LINKS_TABLE!, itemId);
 
       await sendMessageQueue(itemId);
-
-      const userId = event.requestContext?.authorizer?.principalId;
-      if (!userId) {
-        return {
-          statusCode: 400,
-          body: JSON.stringify({ success: false, error: "Unauthorized" }),
-        };
-      }
-
-      await deleteUrlFromUser(userId, itemId);
     }
 
     return response;
   } catch (error) {
-    return {
-      statusCode: 500,
-      body: JSON.stringify({
-        success: false,
-        error: error,
-      }),
-    };
+    return createError(500, {
+      success: false,
+      error: error,
+    });
   }
 };

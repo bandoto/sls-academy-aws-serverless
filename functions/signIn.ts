@@ -4,7 +4,7 @@ import { dynamoDbClient } from "../helpers/providers";
 import bcrypt from "bcryptjs";
 import { CookieSerializeOptions, serialize } from "cookie";
 import { generateTokens, saveToken } from "../libs/jwtTokenActions";
-import { EMAIL_REGEX } from "../helpers/constants";
+import { createError, createResponse } from "../helpers/functions";
 
 export const signIn = async (
   event: APIGatewayProxyEvent
@@ -16,33 +16,10 @@ export const signIn = async (
     };
 
     if (!email || !password) {
-      return {
-        statusCode: 400,
-        body: JSON.stringify({
-          success: false,
-          error: "Enter email or password",
-        }),
-      };
-    }
-
-    if (!EMAIL_REGEX.test(email)) {
-      return {
-        statusCode: 400,
-        body: JSON.stringify({
-          success: false,
-          error: "Invalid email format",
-        }),
-      };
-    }
-
-    if (password.length < 4) {
-      return {
-        statusCode: 400,
-        body: JSON.stringify({
-          success: false,
-          error: "Password must be at least 6 characters long",
-        }),
-      };
+      return createError(400, {
+        success: false,
+        error: "Enter email or password",
+      });
     }
 
     const command: ScanCommand = new ScanCommand({
@@ -56,13 +33,10 @@ export const signIn = async (
     const existUser = await dynamoDbClient.send(command);
 
     if (!existUser.Items || existUser.Items.length === 0) {
-      return {
-        statusCode: 404,
-        body: JSON.stringify({
-          success: false,
-          error: "User with this email was not found",
-        }),
-      };
+      return createError(404, {
+        success: false,
+        error: "User with this email was not found",
+      });
     }
 
     const userPassword: string = existUser.Items[0].password.S!;
@@ -71,13 +45,10 @@ export const signIn = async (
     const isPassEquals: boolean = await bcrypt.compare(password, userPassword);
 
     if (!isPassEquals) {
-      return {
-        statusCode: 400,
-        body: JSON.stringify({
-          success: false,
-          error: "Incorrect password",
-        }),
-      };
+      return createError(400, {
+        success: false,
+        error: "Incorrect password",
+      });
     }
 
     const tokens = generateTokens({ userId, email });
@@ -94,24 +65,19 @@ export const signIn = async (
       cookieOptions
     );
 
-    return {
-      statusCode: 200,
-      headers: {
-        "Set-Cookie": cookieHeaderValue,
-      },
-      body: JSON.stringify({
+    return createResponse(
+      200,
+      {
         id: userId,
         accessToken: tokens.accessToken,
         refreshToken: tokens.refreshToken,
-      }),
-    };
+      },
+      cookieHeaderValue
+    );
   } catch (error) {
-    return {
-      statusCode: 500,
-      body: JSON.stringify({
-        success: false,
-        error: error,
-      }),
-    };
+    return createError(500, {
+      success: false,
+      error: error,
+    });
   }
 };

@@ -25,14 +25,24 @@ plugins:
   - serverless-offline
   - serverless-esbuild
   - serverless-dotenv-plugin
+  - serverless-plugin-scripts
+  - serverless-auto-swagger
 
 custom:
+  scripts:
+    hooks:
+      'deploy:finalize': node verifyEmail.mjs
   esbuild:
     bundle: true
     minify: false
     target: 'node18'
     platform: 'node'
     concurrency: 10
+  autoswagger:
+    title: 'Severless Academy ShortLinker Project'
+    host: 'localhost:3000/dev/'
+    typefiles: [ './schemas/modelsSchema.d.ts' ]
+    apiKeyHeaders: [ 'Authorization' ]
   dotenv:
     include:
       - .env
@@ -48,6 +58,12 @@ functions:
           method: post
           cors: true
           bodyType: User
+          request:
+            schemas:
+              application/json: ${file(schemas/signUpSchema.json)}
+          responseData:
+            200:
+              bodyType: SignUpResponse
     iamRoleStatements:
       - Effect: Allow
         Action:
@@ -64,6 +80,12 @@ functions:
           method: post
           cors: true
           bodyType: User
+          request:
+            schemas:
+              application/json: ${file(schemas/signInSchema.json)}
+          responseData:
+            200:
+              bodyType: SignInResponse
     iamRoleStatements:
       - Effect: Allow
         Action:
@@ -79,6 +101,10 @@ functions:
           path: /profile
           method: get
           cors: true
+          bodyType: User
+          responseData:
+            200:
+              bodyType: ProfileResponse
           authorizer:
             name: checkIsAuth
             identitySource: method.request.header.Authorization
@@ -97,6 +123,9 @@ functions:
           path: /refresh
           method: get
           cors: true
+          responseData:
+            200:
+              bodyType: TokenResponse
           authorizer:
             name: checkIsAuth
             identitySource: method.request.header.Authorization
@@ -107,7 +136,6 @@ functions:
           - 'dynamodb:*'
         Resource:
           - !GetAtt UsersTable.Arn
-
   scheduledDeactivateUrl:
     handler: functions/scheduledDeactivateUrl.scheduledDeactivateUrl
     events:
@@ -124,6 +152,8 @@ functions:
           - 'dynamodb:DeleteItem'
           - 'sqs:SendMessage'
           - 'ses:*'
+          - 'events:*'
+          - 'scheduler:*'
         Resource: '*'
   sendEmailNotification:
     handler: functions/sendEmailNotification.sendEmailNotification
@@ -141,12 +171,23 @@ functions:
           - 'ses:*'
         Resource: '*'
   shortUrl:
-    handler: functions/shortUrl.shortUrl
+    handler: functions/shortUrl.shortUrlWithMiddleware
+    middy:
+      use:
+        - name: httpJsonBodyParser
+        - name: validateUrlMiddleware
     events:
       - http:
           path: /
           method: post
           cors: true
+          bodyType: Url
+          request:
+            schemas:
+              application/json: ${file(schemas/urlSchema.json)}
+          responseData:
+            200:
+              bodyType: UrlResponse
           authorizer:
             name: checkIsAuth
             identitySource: method.request.header.Authorization
@@ -170,6 +211,9 @@ functions:
           path: /{shortedUrl}
           method: get
           cors: true
+          responseData:
+            302:
+              bodyType: ''
           response:
             headers:
               Location:
@@ -179,10 +223,6 @@ functions:
                 pattern: ''
                 headers:
                   Location: 'integration.response.headers.Location'
-          authorizer:
-            name: checkIsAuth
-            identitySource: method.request.header.Authorization
-            resultTtlInSeconds: 3600
     iamRoleStatements:
       - Effect: Allow
         Action:
@@ -201,6 +241,13 @@ functions:
           path: /deactivateURL
           method: delete
           cors: true
+          bodyType: Deactivate
+          request:
+            schemas:
+              application/json: ${file(schemas/deactivateSchema.json)}
+          responseData:
+            200:
+              bodyType: DeactivateUrlResponse
           authorizer:
             name: checkIsAuth
             identitySource: method.request.header.Authorization
@@ -265,12 +312,24 @@ resources:
         AttributeDefinitions:
           - AttributeName: id
             AttributeType: S
+          - AttributeName: userId
+            AttributeType: S
         KeySchema:
           - AttributeName: id
             KeyType: HASH
         ProvisionedThroughput:
           ReadCapacityUnits: 5
           WriteCapacityUnits: 5
+        GlobalSecondaryIndexes:
+          - IndexName: UserIdIndex
+            KeySchema:
+              - AttributeName: userId
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+            ProvisionedThroughput:
+              ReadCapacityUnits: 5
+              WriteCapacityUnits: 5
     UsersTable:
       Type: AWS::DynamoDB::Table
       Properties:

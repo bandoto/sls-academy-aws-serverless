@@ -11,6 +11,7 @@ import {
 } from "../libs/jwtTokenActions";
 import { ScanCommand } from "@aws-sdk/client-dynamodb";
 import { dynamoDbClient } from "../helpers/providers";
+import { createError, createResponse } from "../helpers/functions";
 
 export const refreshTokens: APIGatewayProxyHandler = async (
   event: APIGatewayProxyEvent
@@ -23,13 +24,10 @@ export const refreshTokens: APIGatewayProxyHandler = async (
     const refreshToken = cookies.refreshToken;
 
     if (!refreshToken) {
-      return {
-        statusCode: 400,
-        body: JSON.stringify({
-          success: false,
-          error: "Refresh token not found",
-        }),
-      };
+      return createError(400, {
+        success: false,
+        error: "Refresh token not found",
+      });
     }
 
     const userData = await validRefreshToken(refreshToken);
@@ -45,13 +43,10 @@ export const refreshTokens: APIGatewayProxyHandler = async (
     const existData = await dynamoDbClient.send(command);
 
     if (!userData || !existData.Items || existData.Items.length === 0) {
-      return {
-        statusCode: 400,
-        body: JSON.stringify({
-          success: false,
-          error: "Refresh token not found",
-        }),
-      };
+      return createError(400, {
+        success: false,
+        error: "Refresh token not found",
+      });
     }
 
     const userId: string = existData.Items[0].id.S!;
@@ -71,24 +66,19 @@ export const refreshTokens: APIGatewayProxyHandler = async (
       cookieOptions
     );
 
-    return {
-      statusCode: 200,
-      headers: {
-        "Set-Cookie": cookieHeaderValue,
-      },
-      body: JSON.stringify({
+    return createResponse(
+      200,
+      {
         id: userId,
         accessToken: tokens.accessToken,
         refreshToken: tokens.refreshToken,
-      }),
-    };
+      },
+      cookieHeaderValue
+    );
   } catch (error) {
-    return {
-      statusCode: 500,
-      body: JSON.stringify({
-        success: false,
-        error: error,
-      }),
-    };
+    return createError(500, {
+      success: false,
+      error: error,
+    });
   }
 };

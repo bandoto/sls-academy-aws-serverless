@@ -6,7 +6,7 @@ import bcrypt from "bcryptjs";
 import { nanoid } from "nanoid";
 import { CookieSerializeOptions, serialize } from "cookie";
 import { generateTokens, saveToken } from "../libs/jwtTokenActions";
-import { EMAIL_REGEX } from "../helpers/constants";
+import { createError, createResponse } from "../helpers/functions";
 
 export const signUp = async (
   event: APIGatewayProxyEvent
@@ -18,33 +18,10 @@ export const signUp = async (
     };
 
     if (!email || !password) {
-      return {
-        statusCode: 400,
-        body: JSON.stringify({
-          success: false,
-          error: "Enter email or password",
-        }),
-      };
-    }
-
-    if (!EMAIL_REGEX.test(email)) {
-      return {
-        statusCode: 400,
-        body: JSON.stringify({
-          success: false,
-          error: "Invalid email format",
-        }),
-      };
-    }
-
-    if (password.length < 4) {
-      return {
-        statusCode: 400,
-        body: JSON.stringify({
-          success: false,
-          error: "Password must be at least 6 characters long",
-        }),
-      };
+      return createError(400, {
+        success: false,
+        error: "Enter email or password",
+      });
     }
 
     const command: ScanCommand = new ScanCommand({
@@ -58,13 +35,10 @@ export const signUp = async (
     const existUser = await dynamoDbClient.send(command);
 
     if (existUser.Items && existUser.Items.length > 0) {
-      return {
-        statusCode: 400,
-        body: JSON.stringify({
-          success: false,
-          error: "Email is already registered",
-        }),
-      };
+      return createError(400, {
+        success: false,
+        error: "Email is already registered",
+      });
     }
 
     const hashedPassword: string = await bcrypt.hash(password, 10);
@@ -76,7 +50,6 @@ export const signUp = async (
         id: { S: userId },
         email: { S: email },
         password: { S: hashedPassword },
-        urls_list: { L: [] },
       },
     });
 
@@ -96,24 +69,19 @@ export const signUp = async (
       cookieOptions
     );
 
-    return {
-      statusCode: 200,
-      headers: {
-        "Set-Cookie": cookieHeaderValue,
-      },
-      body: JSON.stringify({
+    return createResponse(
+      200,
+      {
         id: userId,
         accessToken: tokens.accessToken,
         refreshToken: tokens.refreshToken,
-      }),
-    };
+      },
+      cookieHeaderValue
+    );
   } catch (error) {
-    return {
-      statusCode: 500,
-      body: JSON.stringify({
-        success: false,
-        error: error,
-      }),
-    };
+    return createError(500, {
+      success: false,
+      error: error,
+    });
   }
 };
